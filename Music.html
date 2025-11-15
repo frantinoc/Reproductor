@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reproductor de Música Móvil</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos personalizados para la experiencia móvil */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Fondo suave */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 420px; /* Tamaño típico de móvil */
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15); /* Sombra más profunda */
+            border-radius: 1.5rem;
+            overflow: hidden;
+            background-color: white;
+        }
+        /* Ocultar el control de audio por defecto y el input de archivo */
+        #audioPlayer { display: none; }
+        #fileInput { display: none; }
+
+        /* Estilo para el botón de archivo simulado */
+        .file-input-label {
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        .file-input-label:hover {
+            background-color: #2563eb;
+        }
+        .file-input-label:active {
+            transform: scale(0.98);
+        }
+
+        /* Estilo para la barra de progreso */
+        #progressBar {
+            height: 8px;
+            background-color: #e0e7ff; /* Indigo-100 */
+        }
+        #progressBar::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #4f46e5; /* Indigo-600 */
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .song-item {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Encabezado Moderno con Degradado -->
+        <header class="bg-gradient-to-r from-indigo-600 to-fuchsia-600 p-6 text-white text-center rounded-t-xl shadow-lg">
+            <h1 class="text-3xl font-extrabold tracking-tight">FRANK MUSIC</h1>
+            <p class="text-indigo-200 text-sm mt-1">Reproductor de Música Local</p>
+        </header>
+
+        <!-- Sección de Reproducción Actual -->
+        <div class="p-6 border-b border-gray-100 bg-gray-50">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Reproducción Actual</h2>
+
+            <!-- Visualización del Track con diseño de tarjeta -->
+            <div id="currentTrack" class="flex items-center space-x-4 bg-white p-4 rounded-2xl shadow-xl transition duration-300 hover:shadow-2xl">
+                <!-- Álbum Art (Simulado) -->
+                <div class="w-16 h-16 bg-fuchsia-500 rounded-lg flex items-center justify-center text-white text-3xl shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="w-8 h-8">
+                        <path d="M12 3a9 9 0 0 0-9 9c0 4.97 4.03 9 9 9s9-4.03 9-9a9 9 0 0 0-9-9zm-1 14h-1v-5h-3v-2h4v7zm5-7h-1v-3h-1v3h-1v-3h-1v3h-1v-3h-1v3h-1v-3h-1v3H7V7h10v5z"/>
+                        <path d="M12 12m-2 0a2 2 0 1 0 4 0 2 2 0 1 0-4 0m2-5a5 5 0 1 1-10 0 5 5 0 0 1 10 0z" fill="#fff"/>
+                    </svg>
+                </div>
+                <div>
+                    <p id="trackTitle" class="font-bold text-lg text-indigo-700 truncate">Ninguna Canción Seleccionada</p>
+                    <p id="trackSource" class="text-sm text-gray-500">Estado: Listo</p>
+                </div>
+            </div>
+
+            <!-- Controles de Audio y Progreso -->
+            <div class="mt-6">
+                <div class="flex justify-between items-center space-x-4">
+                    <button id="playPauseBtn" class="bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition duration-150 disabled:bg-gray-400 transform hover:scale-105" disabled>
+                        <svg id="playIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7">
+                            <path fill-rule="evenodd" d="M4.5 5.653c0-1.427 1.529-2.31 2.706-1.638l11.54 6.347a1.444 1.444 0 0 1 0 2.508l-11.54 6.347A1.474 1.474 0 0 1 4.5 18.347V5.653Z" clip-rule="evenodd" />
+                        </svg>
+                        <svg id="pauseIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7 hidden">
+                            <path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 0 1 .75-.75H9a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H7.5a.75.75 0 0 1-.75-.75V5.25Zm7.5 0A.75.75 0 0 1 15 4.5h1.5a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H15a.75.75 0 0 1-.75-.75V5.25Z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <input type="range" id="progressBar" min="0" max="100" value="0" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg">
+                    <span id="currentTime" class="text-sm text-gray-600 min-w-[40px] text-right">0:00</span>
+                </div>
+            </div>
+            
+            <audio id="audioPlayer"></audio>
+        </div>
+
+        <!-- Sección 1: Seleccionar Carpeta de Música -->
+        <div class="p-6 border-b border-gray-100">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">1. Seleccionar Carpeta de Música</h2>
+            <!-- Importante: Usamos webkitdirectory y directory para permitir la selección de carpetas -->
+            <input type="file" id="fileInput" accept="audio/*" webkitdirectory directory multiple>
+            <label for="fileInput" class="file-input-label bg-indigo-500 text-white font-medium py-3 px-4 rounded-xl w-full text-center block shadow-lg hover:bg-indigo-600">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 inline mr-2 align-text-bottom">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-4.5 0a2.25 2.25 0 0 0-4.5 0m4.5 0a2.25 2.25 0 0 1-4.5 0m-4.5-5.25H4.5A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 16.5v-9a2.25 2.25 0 0 0-2.25-2.25H16.5m-9 0a2.25 2.25 0 0 1 2.25 2.25V18.75" />
+                </svg>
+                Seleccionar Carpeta
+            </label>
+        </div>
+
+        <!-- Sección 2: Archivos de la Carpeta Cargada -->
+        <div class="p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">2. Archivos en la Carpeta Cargada</h2>
+            
+            <div id="searchResultsList" class="space-y-3">
+                <p class="text-gray-500 text-sm italic p-4 bg-gray-100 rounded-xl" id="folderPlaceholder">
+                    Por favor, usa el botón de arriba para seleccionar una carpeta que contenga tus archivos de audio.
+                </p>
+            </div>
+
+            <p class="text-xs text-gray-500 pt-2 border-t mt-4 text-center">
+                * Los archivos se cargan directamente desde la carpeta que selecciones y se reproducen localmente.
+            </p>
+        </div>
+
+        <!-- Mensaje de Estado / Modal (Simulación de Alert) -->
+        <div id="messageBox" class="fixed inset-x-0 bottom-0 p-4 hidden z-10">
+            <div class="bg-indigo-600 text-white p-3 rounded-xl shadow-2xl flex items-center justify-between">
+                <span id="messageText" class="font-medium"></span>
+                <button onclick="hideMessage()" class="ml-4 text-white hover:text-indigo-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        // --- Variables Globales ---
+        const audioPlayer = document.getElementById('audioPlayer');
+        const fileInput = document.getElementById('fileInput');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const playIcon = document.getElementById('playIcon');
+        const pauseIcon = document.getElementById('pauseIcon');
+        const progressBar = document.getElementById('progressBar');
+        const currentTimeDisplay = document.getElementById('currentTime');
+        const trackTitleDisplay = document.getElementById('trackTitle');
+        const trackSourceDisplay = document.getElementById('trackSource');
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+        const searchResultsList = document.getElementById('searchResultsList');
+        const folderPlaceholder = document.getElementById('folderPlaceholder');
+
+        let isPlaying = false;
+        // Array para almacenar los objetos File de la carpeta seleccionada
+        let currentFolderFiles = []; 
+
+
+        // --- Funciones de Utilidad ---
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+        }
+
+        function showMessage(text, duration = 3000) {
+            messageText.textContent = text;
+            messageBox.classList.remove('hidden');
+            clearTimeout(messageBox.timeoutId);
+            messageBox.timeoutId = setTimeout(hideMessage, duration);
+        }
+
+        function hideMessage() {
+            messageBox.classList.add('hidden');
+        }
+        
+        function setTrackInfo(title, source) {
+            trackTitleDisplay.textContent = title;
+            trackSourceDisplay.textContent = source;
+            playPauseBtn.disabled = false;
+        }
+
+        function resetPlayer() {
+            audioPlayer.src = '';
+            isPlaying = false;
+            playPauseBtn.disabled = true;
+            playIcon.classList.remove('hidden');
+            pauseIcon.classList.add('hidden');
+            progressBar.value = 0;
+            currentTimeDisplay.textContent = '0:00';
+            // Restablecer información solo si no hay archivos cargados
+            if (currentFolderFiles.length === 0) {
+                trackTitleDisplay.textContent = 'Ninguna Canción Seleccionada';
+                trackSourceDisplay.textContent = 'Estado: Listo';
+            } else {
+                trackSourceDisplay.textContent = 'Estado: Listo (Carpeta Cargada)';
+            }
+        }
+
+        // --- Lógica para Mostrar los Archivos de la Carpeta ---
+
+        function renderLibrary(files) {
+            searchResultsList.innerHTML = ''; // Limpiar lista
+            folderPlaceholder.classList.add('hidden');
+            
+            if (files.length === 0) {
+                searchResultsList.innerHTML = `<p class="text-gray-500 text-sm italic p-4 bg-yellow-100 rounded-xl">
+                    No se encontraron archivos de audio válidos (.mp3, .wav, etc.) en la carpeta seleccionada.
+                </p>`;
+                return;
+            }
+
+            files.forEach((file, index) => {
+                const itemHtml = `
+                    <div class="song-item p-4 bg-white rounded-xl shadow-md border border-gray-200 flex items-center justify-between hover:bg-gray-50 transition duration-150" 
+                         data-index="${index}">
+                        <div>
+                            <p class="font-bold text-base text-gray-800 truncate">${file.name}</p>
+                            <p class="text-sm text-fuchsia-600 truncate">Tamaño: ${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        </div>
+                        <button class="play-local-btn bg-fuchsia-500 text-white py-2 px-4 rounded-full text-xs font-bold hover:bg-fuchsia-600 transition duration-150 flex-shrink-0 shadow-md transform active:scale-95">
+                            Reproducir
+                        </button>
+                    </div>
+                `;
+                searchResultsList.insertAdjacentHTML('beforeend', itemHtml);
+            });
+        }
+
+
+        // --- Manejadores de Eventos del Reproductor ---
+
+        // 1. Manejo de la selección de carpeta
+        fileInput.addEventListener('change', (event) => {
+            currentFolderFiles = [];
+            const files = event.target.files;
+
+            if (files.length === 0) {
+                folderPlaceholder.classList.remove('hidden');
+                resetPlayer();
+                return;
+            }
+            
+            // 1. Filtrar solo archivos de audio
+            const audioFiles = Array.from(files).filter(file => file.type.startsWith('audio/'));
+            
+            currentFolderFiles = audioFiles;
+
+            // 2. Mostrar la lista de archivos
+            renderLibrary(currentFolderFiles);
+
+            // 3. Informar al usuario
+            if (currentFolderFiles.length > 0) {
+                showMessage(`Carpeta cargada con ${currentFolderFiles.length} archivos de audio. Selecciona uno para reproducir.`, 5000);
+            } else {
+                 showMessage('La carpeta seleccionada no contenía archivos de audio válidos.', 5000);
+            }
+            resetPlayer();
+        });
+
+        // 2. Manejo del botón Reproducir/Pausar
+        playPauseBtn.addEventListener('click', () => {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+            } else {
+                audioPlayer.pause();
+            }
+        });
+
+        // 3. Eventos de la etiqueta <audio>
+        audioPlayer.addEventListener('play', () => {
+            isPlaying = true;
+            playIcon.classList.add('hidden');
+            pauseIcon.classList.remove('hidden');
+            trackSourceDisplay.textContent = 'Estado: Reproduciendo...';
+        });
+
+        audioPlayer.addEventListener('pause', () => {
+            isPlaying = false;
+            playIcon.classList.remove('hidden');
+            pauseIcon.classList.add('hidden');
+            trackSourceDisplay.textContent = 'Estado: Pausado';
+        });
+
+        audioPlayer.addEventListener('ended', () => {
+            resetPlayer();
+            showMessage('La reproducción ha finalizado.');
+        });
+        
+        audioPlayer.addEventListener('loadedmetadata', () => {
+            progressBar.max = audioPlayer.duration;
+        });
+
+        audioPlayer.addEventListener('timeupdate', () => {
+            if (!isNaN(audioPlayer.duration)) {
+                progressBar.value = audioPlayer.currentTime;
+                currentTimeDisplay.textContent = formatTime(audioPlayer.currentTime);
+            }
+        });
+
+        // 4. Manejo de la barra de progreso 
+        progressBar.addEventListener('input', () => {
+            audioPlayer.currentTime = progressBar.value;
+        });
+        
+        // 5. Listener delegado para los botones de reproducción de la lista de archivos
+        searchResultsList.addEventListener('click', (e) => {
+            const playBtn = e.target.closest('.play-local-btn');
+            if (playBtn) {
+                const songItem = playBtn.closest('.song-item');
+                const index = parseInt(songItem.getAttribute('data-index'), 10);
+
+                if (index < currentFolderFiles.length) {
+                    const file = currentFolderFiles[index];
+                    
+                    // Crea una URL de objeto temporal para el archivo local
+                    const fileURL = URL.createObjectURL(file);
+                    
+                    audioPlayer.src = fileURL;
+                    audioPlayer.load();
+                    setTrackInfo(file.name, 'Fuente: Carpeta Local');
+                    audioPlayer.play();
+                    
+                    showMessage(`Reproduciendo: ${file.name}`, 4000);
+                    
+                    // Importante: Liberar la URL de objeto cuando ya no se necesite
+                    // Aunque lo hacemos en resetPlayer, podríamos hacerlo aquí si cambiamos de canción.
+                }
+            }
+        });
+
+
+        // --- Inicialización ---
+        window.onload = function() {
+             resetPlayer(); // Asegura el estado inicial
+             // La lista se renderizará cuando el usuario seleccione la carpeta
+        }
+    </script>
+</body>
+</html>
